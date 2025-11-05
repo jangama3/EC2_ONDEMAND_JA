@@ -1,21 +1,4 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-    local = {
-      source = "hashicorp/local"
-    }
-    archive = {
-      source  = "hashicorp/archive"
-    }
-  }
-}
 
-provider "aws" {
-  region = "us-east-1"
-}
 
 ############################################
 # 1) Generate Lambda Source File
@@ -152,6 +135,6 @@ resource "aws_lambda_permission" "apigw" {
 ############################################
 # 6) Output API Endpoint
 ############################################
-output "api_endpoint" {
-  value = aws_apigatewayv2_api.api.api_endpoint
-}
+#output "api_endpoint" {
+#  value = aws_apigatewayv2_api.api.api_endpoint
+#}
