@@ -1,5 +1,6 @@
+# S3 Bucket
 resource "aws_s3_bucket" "website_bucket" {
-  bucket = var.s3_bucket_name
+  bucket        = var.s3_bucket_name
   force_destroy = true
 
   tags = {
@@ -8,6 +9,7 @@ resource "aws_s3_bucket" "website_bucket" {
   }
 }
 
+# Configure bucket for static website hosting
 resource "aws_s3_bucket_website_configuration" "website" {
   bucket = aws_s3_bucket.website_bucket.id
 
@@ -20,6 +22,7 @@ resource "aws_s3_bucket_website_configuration" "website" {
   }
 }
 
+# Public read policy for static website
 resource "aws_s3_bucket_policy" "website_policy" {
   bucket = aws_s3_bucket.website_bucket.id
 
