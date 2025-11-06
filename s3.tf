@@ -1,40 +1,33 @@
-# Create S3 bucket for static website
-resource "aws_s3_bucket" "static_website_bucket" {
-  bucket = var.bucketname
+
+# Create the S3 bucket
+resource "aws_s3_bucket" "static_website" {
+  bucket        = var.bucketname
+  force_destroy = true
 
   tags = {
     Name        = var.bucketname
-    Environment = "Dev"
+    Environment = "prod"
   }
 }
 
-resource "aws_s3_bucket_website_configuration" "static_website_config" {
-  bucket = aws_s3_bucket.static_website_bucket.id
+# Enforce bucket ownership
+resource "aws_s3_bucket_ownership_controls" "ownership" {
+  bucket = aws_s3_bucket.static_website.id
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+# Configure bucket for static website hosting
+resource "aws_s3_bucket_website_configuration" "website" {
+  bucket = aws_s3_bucket.static_website.id
 
   index_document {
     suffix = "index.html"
   }
 
   error_document {
-    key = "error.html" # Optional, define if you have a custom error page
+    key = "error.html"
   }
-}
-
-resource "aws_s3_bucket_policy" "static_website_policy" {
-  bucket = aws_s3_bucket.static_website_bucket.id
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject",
-        Effect    = "Allow",
-        Principal = "*",
-        Action    = "s3:GetObject",
-        Resource = [
-          "${aws_s3_bucket.static_website_bucket.arn}/*",
-        ],
-      },
-    ],
-  })
 }
