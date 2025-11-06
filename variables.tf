@@ -48,5 +48,5 @@ variable "website_bucket_name" {
 variable "s3_bucket_name" {
   description = "The name of the S3 bucket for the static website"
   type        = string
-  default     = "EC2_on_demand_ja25"
+  default     = "EC2-on-demand-ja25"
 }
