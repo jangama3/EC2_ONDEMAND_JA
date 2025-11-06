@@ -1,41 +1,59 @@
-# S3 Bucket
-resource "aws_s3_bucket" "website_bucket" {
-  bucket        = var.s3_bucket_name
-  force_destroy = true
+# Create S3 bucket for static website
+resource "aws_s3_bucket" "staticwebsiterraform" {
+  bucket = var.bucketname
 
   tags = {
-    Name        = var.s3_bucket_name
+    Name        = var.bucketname
     Environment = "Dev"
   }
 }
 
+# Ensure bucket ownership
+resource "aws_s3_bucket_ownership_controls" "ownership" {
+  bucket = aws_s3_bucket.staticwebsiterraform.id
 
-# Enable website hosting
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+# Configure public access (allows public-read)
+resource "aws_s3_bucket_public_access_block" "publicaccess" {
+  bucket = aws_s3_bucket.staticwebsiterraform.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+# Set bucket ACL
+resource "aws_s3_bucket_acl" "acl" {
+  depends_on = [
+    aws_s3_bucket_ownership_controls.ownership,
+    aws_s3_bucket_public_access_block.publicaccess,
+  ]
+
+  bucket = aws_s3_bucket.staticwebsiterraform.id
+  acl    = "public-read"
+}
+
+# Upload index.html manually (ensure file exists in repo)
+
+
+# Upload error.html manually (optional)
+
+# Enable static website hosting
 resource "aws_s3_bucket_website_configuration" "website" {
-  bucket = aws_s3_bucket.website_bucket.id
+  bucket = aws_s3_bucket.staticwebsiterraform.id
 
   index_document {
     suffix = "index.html"
   }
 
   error_document {
-    key = "index.html"
+    key = "error.html"
   }
-}
 
-# S3 Bucket Policy to allow public read access for website objects
-resource "aws_s3_bucket_policy" "website_policy" {
-  bucket = aws_s3_bucket.website_bucket.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = "*"
-        Action = "s3:GetObject"
-        Resource = "${aws_s3_bucket.website_bucket.arn}/*"
-      }
-    ]
-  })
+  depends_on = [aws_s3_bucket_acl.acl]
 }
