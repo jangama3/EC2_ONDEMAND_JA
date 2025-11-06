@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EC2 Control Panel</title>
+  <style>
+    body { font-family: Arial; margin: 50px; }
+    select, button { margin: 8px; padding: 6px; }
+    #message { margin-top: 15px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>EC2 Control Panel</h2>
+
+  <label>Choose an EC2 instance:</label>
+  <select id="serverDropdown">
+    <option value="">-- Loading instances... --</option>
+  </select>
+
+  <br>
+  <button onclick="sendRequest('start')">Start Server</button>
+  <button onclick="sendRequest('stop')">Stop Server</button>
+
+  <div id="message"></div>
+
+  <script>
+  const apiBase = "https://05jkowbqxk.execute-api.us-east-1.amazonaws.com";
+
+  async function loadInstances() {
+    try {
+      const res = await fetch(apiBase, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "list" })
+      });
+
+      const instances = await res.json();
+      const dropdown = document.getElementById('serverDropdown');
+      dropdown.innerHTML = "";
+
+      instances.forEach(i => {
+        const option = document.createElement('option');
+        option.value = i.id;
+        option.textContent = `${i.name} (${i.state})`;
+        dropdown.appendChild(option);
+      });
+
+    } catch (err) {
+      document.getElementById('message').textContent = "❌ Failed to load EC2 instances.";
+    }
+  }
+
+  async function sendRequest(action) {
+    const instanceId = document.getElementById('serverDropdown').value;
+    if (!instanceId) return alert("Please select a server first.");
+
+    document.getElementById('message').textContent = "⏳ Sending request...";
+
+    const res = await fetch(apiBase, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: action, instance_id: instanceId })
+    });
+
+    const data = await res.json();
+    document.getElementById('message').textContent = data.message || data.error;
+  }
+
+  loadInstances();
+</script>
+
+</body>
+</html>
