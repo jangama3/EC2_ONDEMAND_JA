@@ -1,6 +1,8 @@
-# Write Lambda code to local file
+# Write Lambda source code to a local file
 resource "local_file" "lambda_src" {
-  content = <<-EOT
+  filename        = "lambda_function.py"
+  file_permission = "0777"
+  content         = <<-EOT
     import json
     import boto3
 
@@ -17,12 +19,29 @@ resource "local_file" "lambda_src" {
         for r in resp["Reservations"]:
             for i in r["Instances"]:
                 name = next((t["Value"] for t in i.get("Tags", []) if t.get("Key") == "Name"), i.get("InstanceId"))
-                instances.append({"id": i["InstanceId"], "name": name, "state": i["State"]["Name"]})
+                instances.append({
+                    "id": i["InstanceId"],
+                    "name": name,
+                    "state": i["State"]["Name"]
+                })
         return instances
 
     def lambda_handler(event, context):
-        action = event.get("action")
-        instance_id = event.get("instance_id")
+        # Parse API Gateway HTTP API v2 body if it exists
+        body = event.get("body")
+        if body:
+            try:
+                data = json.loads(body)
+            except json.JSONDecodeError:
+                return {
+                    "statusCode": 400,
+                    "body": json.dumps({"error": "Invalid JSON in request body"})
+                }
+        else:
+            data = event
+
+        action = data.get("action")
+        instance_id = data.get("instance_id")
 
         if action == "list":
             return {"statusCode": 200, "body": json.dumps(list_instances())}
@@ -40,13 +59,9 @@ resource "local_file" "lambda_src" {
 
         return {"statusCode": 400, "body": json.dumps({"error": "Invalid action"})}
   EOT
-
-  filename             = "lambda_function.py"
-  file_permission      = "0644"
-  directory_permission = "0755"
 }
 
-# Package Lambda code as ZIP
+# Package Lambda code into a zip
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_file = local_file.lambda_src.filename
@@ -117,14 +132,14 @@ resource "aws_apigatewayv2_route" "route_post" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
-# Stage
+# Stage for the API ($default)
 resource "aws_apigatewayv2_stage" "stage" {
   api_id      = aws_apigatewayv2_api.api.id
   name        = "$default"
   auto_deploy = true
 }
 
-# Allow API Gateway to call Lambda
+# Allow API Gateway to invoke Lambda
 resource "aws_lambda_permission" "api_permission" {
   statement_id  = "AllowInvokeByAPIGateway"
   action        = "lambda:InvokeFunction"
