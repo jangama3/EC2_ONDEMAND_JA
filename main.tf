@@ -1,7 +1,55 @@
-# Package Lambda Code
+# Write Lambda code to local file
+resource "local_file" "lambda_src" {
+  content = <<-EOT
+    import json
+    import boto3
+
+    ec2 = boto3.client("ec2")
+
+    TAG_KEY = "Environment"
+    TAG_VALUE = "Dev"
+
+    def list_instances():
+        resp = ec2.describe_instances(
+            Filters=[{"Name": f"tag:{TAG_KEY}", "Values": [TAG_VALUE]}]
+        )
+        instances = []
+        for r in resp["Reservations"]:
+            for i in r["Instances"]:
+                name = next((t["Value"] for t in i.get("Tags", []) if t.get("Key") == "Name"), i.get("InstanceId"))
+                instances.append({"id": i["InstanceId"], "name": name, "state": i["State"]["Name"]})
+        return instances
+
+    def lambda_handler(event, context):
+        action = event.get("action")
+        instance_id = event.get("instance_id")
+
+        if action == "list":
+            return {"statusCode": 200, "body": json.dumps(list_instances())}
+
+        if not instance_id:
+            return {"statusCode": 400, "body": json.dumps({"error": "No instance id provided"})}
+
+        if action == "start":
+            ec2.start_instances(InstanceIds=[instance_id])
+            return {"statusCode": 200, "body": json.dumps({"message": f"Started {instance_id}"})}
+
+        if action == "stop":
+            ec2.stop_instances(InstanceIds=[instance_id])
+            return {"statusCode": 200, "body": json.dumps({"message": f"Stopped {instance_id}"})}
+
+        return {"statusCode": 400, "body": json.dumps({"error": "Invalid action"})}
+  EOT
+
+  filename             = "lambda_function.py"
+  file_permission      = "0644"
+  directory_permission = "0755"
+}
+
+# Package Lambda code as ZIP
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_file = "lambda_function.py"
+  source_file = local_file.lambda_src.filename
   output_path = "lambda_function.zip"
 }
 
@@ -40,13 +88,13 @@ resource "aws_iam_role_policy" "lambda_policy" {
 
 # Lambda Function
 resource "aws_lambda_function" "ec2_control" {
-  function_name = "EC2_Control_Lambda"
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "lambda_function.lambda_handler"
-  runtime       = "python3.12"
-  filename      = data.archive_file.lambda_zip.output_path
+  function_name    = "EC2_Control_Lambda"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "lambda_function.lambda_handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  timeout = 5
+  timeout          = 5
 }
 
 # HTTP API
@@ -69,7 +117,7 @@ resource "aws_apigatewayv2_route" "route_post" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
-# **Create Stage (fixes your $default issue!)**
+# Stage
 resource "aws_apigatewayv2_stage" "stage" {
   api_id      = aws_apigatewayv2_api.api.id
   name        = "$default"
