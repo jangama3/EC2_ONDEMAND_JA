@@ -1,5 +1,5 @@
 # Create S3 bucket for static website
-resource "aws_s3_bucket" "staticwebsiterraform" {
+resource "aws_s3_bucket" "static_website_bucket" {
   bucket = var.bucketname
 
   tags = {
@@ -8,67 +8,33 @@ resource "aws_s3_bucket" "staticwebsiterraform" {
   }
 }
 
-# Ensure bucket ownership
-resource "aws_s3_bucket_ownership_controls" "ownership" {
-  bucket = aws_s3_bucket.staticwebsiterraform.id
-
-  rule {
-    object_ownership = "BucketOwnerPreferred"
-  }
-}
-
-# Configure public access (allows public-read)
-resource "aws_s3_bucket_public_access_block" "publicaccess" {
-  bucket = aws_s3_bucket.staticwebsiterraform.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-# Set bucket ACL
-resource "aws_s3_bucket_acl" "acl" {
-  depends_on = [
-    aws_s3_bucket_ownership_controls.ownership,
-    aws_s3_bucket_public_access_block.publicaccess,
-  ]
-
-  bucket = aws_s3_bucket.staticwebsiterraform.id
-  acl    = "public-read"
-}
-
-# Upload index.html manually (ensure file exists in repo)
-
-resource "aws_s3_object" "index" {
-  bucket       = aws_s3_bucket.staticwebsiterraform.id
-  key          = "index.html"
-  source       = "index.html"
-  acl          = "public-read"
-  content_type = "text/html"
-}
-
-resource "aws_s3_object" "error" {
-  bucket       = aws_s3_bucket.staticwebsiterraform.id
-  key          = "error.html"
-  source       = "error.html"
-  acl          = "public-read"
-  content_type = "text/html"
-}
-
-# Upload error.html manually (optional)
-
-# Enable static website hosting
-resource "aws_s3_bucket_website_configuration" "website" {
-  bucket = aws_s3_bucket.staticwebsiterraform.id
+resource "aws_s3_bucket_website_configuration" "static_website_config" {
+  bucket = aws_s3_bucket.static_website_bucket.id
 
   index_document {
     suffix = "index.html"
   }
 
   error_document {
-    key = "error.html"
+    key = "error.html" # Optional, define if you have a custom error page
   }
+}
 
-  depends_on = [aws_s3_bucket_acl.acl]
+resource "aws_s3_bucket_policy" "static_website_policy" {
+  bucket = aws_s3_bucket.static_website_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject",
+        Effect    = "Allow",
+        Principal = "*",
+        Action    = "s3:GetObject",
+        Resource = [
+          "${aws_s3_bucket.static_website_bucket.arn}/*",
+        ],
+      },
+    ],
+  })
 }
