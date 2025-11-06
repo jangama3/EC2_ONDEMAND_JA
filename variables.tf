@@ -38,3 +38,9 @@ variable "lambda_name" {
   type        = string
   default     = "ec2-control-lambda"
 }
+
+variable "website_bucket_name" {
+  description = "Name of the S3 bucket for the static website"
+  type        = string
+  default     = "EC2_on_demand_ja25"
+}
