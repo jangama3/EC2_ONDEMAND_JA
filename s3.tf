@@ -9,7 +9,8 @@ resource "aws_s3_bucket" "website_bucket" {
   }
 }
 
-# Configure bucket for static website hosting
+
+# Enable website hosting
 resource "aws_s3_bucket_website_configuration" "website" {
   bucket = aws_s3_bucket.website_bucket.id
 
@@ -22,7 +23,7 @@ resource "aws_s3_bucket_website_configuration" "website" {
   }
 }
 
-# Public read policy for static website
+# S3 Bucket Policy to allow public read access for website objects
 resource "aws_s3_bucket_policy" "website_policy" {
   bucket = aws_s3_bucket.website_bucket.id
 
@@ -30,10 +31,10 @@ resource "aws_s3_bucket_policy" "website_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect    = "Allow"
+        Effect = "Allow"
         Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.website_bucket.arn}/*"
+        Action = "s3:GetObject"
+        Resource = "${aws_s3_bucket.website_bucket.arn}/*"
       }
     ]
   })
