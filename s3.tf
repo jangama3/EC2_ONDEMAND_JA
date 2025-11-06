@@ -40,6 +40,21 @@ resource "aws_s3_bucket_acl" "acl" {
 
 # Upload index.html manually (ensure file exists in repo)
 
+resource "aws_s3_object" "index" {
+  bucket       = aws_s3_bucket.staticwebsiterraform.id
+  key          = "index.html"
+  source       = "index.html"
+  acl          = "public-read"
+  content_type = "text/html"
+}
+
+resource "aws_s3_object" "error" {
+  bucket       = aws_s3_bucket.staticwebsiterraform.id
+  key          = "error.html"
+  source       = "error.html"
+  acl          = "public-read"
+  content_type = "text/html"
+}
 
 # Upload error.html manually (optional)
 
