@@ -1,20 +1,25 @@
-# Create S3 Bucket for static website
 resource "aws_s3_bucket" "website_bucket" {
-  bucket = var.website_bucket_name
-  acl    = "public-read"
-
-  website {
-    index_document = "index.html"
-    error_document = "index.html"
-  }
+  bucket = var.s3_bucket_name
+  force_destroy = true
 
   tags = {
-    Name        = var.website_bucket_name
+    Name        = var.s3_bucket_name
     Environment = "Dev"
   }
 }
 
-# Public read policy for static website
+resource "aws_s3_bucket_website_configuration" "website" {
+  bucket = aws_s3_bucket.website_bucket.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "index.html"
+  }
+}
+
 resource "aws_s3_bucket_policy" "website_policy" {
   bucket = aws_s3_bucket.website_bucket.id
 
@@ -22,7 +27,6 @@ resource "aws_s3_bucket_policy" "website_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "PublicReadGetObject"
         Effect    = "Allow"
         Principal = "*"
         Action    = "s3:GetObject"
