@@ -25,7 +25,7 @@ Allowed Methods: POST, OPTIONS
 Allowed Headers: Content-Type
 
 
-Useful Commands::
+Useful Commands:
 
 $apiUrl = "https://05jkowbqxk.execute-api.us-east-1.amazonaws.com/$default"
 Invoke-RestMethod -Uri $apiUrl -Method POST -Body '{"action":"list"}' -ContentType "application/json"
