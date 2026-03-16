@@ -42,6 +42,6 @@ variable "lambda_name" {
 variable "bucket_name" {
   description = "The name of the S3 bucket for the static website"
   type        = string
-  default     = "22ec2ondemandja2625-unique12345"
+  default     = "22ec2ondemandja2625-unique123456"
 }
 
