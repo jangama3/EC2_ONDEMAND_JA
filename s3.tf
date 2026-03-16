@@ -17,7 +17,7 @@ resource "aws_s3_bucket_ownership_controls" "ownership" {
   }
 }
 
-# Configure public access block to allow public objects
+# Configure public access block to allow public object
 resource "aws_s3_bucket_public_access_block" "public_access" {
   bucket = aws_s3_bucket.static_website.id
 
